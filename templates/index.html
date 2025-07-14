@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Live Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #fafafa; }
+    #controls { display: flex; gap: 10px; margin-bottom: 20px; }
+    #controls input, #controls label { font-size: 14px; }
+    #gallery { display: flex; flex-wrap: wrap; gap: 20px; }
+    .card { width: 200px; border: 1px solid #ccc; border-radius: 8px; background: white; text-align: center; overflow: hidden; }
+    .card img { width: 100%; height: auto; }
+    .info { padding: 10px; }
+    .info h3 { margin: 0 0 5px; font-size: 18px; }
+    .info p { margin: 5px 0; font-size: 14px; }
+    button { cursor: pointer; padding: 5px 10px; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <input type="text" id="searchBox" placeholder="Search by symbol…" style="flex:1;padding:5px;"/>
+    <label>Min Trades:
+      <input type="number" id="minTrades" value="0" min="0" style="width:60px;" />
+    </label>
+    <button id="runJobBtn">Run Backtest</button>
+    <span id="runStatus" style="margin-left:10px;color:#555;"></span>
+  </div>
+
+  <div id="gallery"></div>
+
+  <script>
+    const galleryEl      = document.getElementById('gallery');
+    const searchBox      = document.getElementById('searchBox');
+    const minTradesInput = document.getElementById('minTrades');
+    const runBtn         = document.getElementById('runJobBtn');
+    const statusSpan     = document.getElementById('runStatus');
+
+    function buildCard(item) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const img = document.createElement('img');
+      img.src = item.thumbnail_url;
+      card.appendChild(img);
+      const info = document.createElement('div');
+      info.className = 'info';
+      info.innerHTML = `
+        <h3>${item.symbol}</h3>
+        <p>Total Trades: ${item.trade_count}</p>
+        <p>Candles: ${item.bars}</p>
+        <p>Total P/L: ${item.total_pnl.toFixed(2)}</p>
+        <p>Avg Win: ${item.avg_win.toFixed(2)}, Avg Loss: ${item.avg_loss.toFixed(2)}</p>
+      `;
+      card.appendChild(info);
+      return card;
+    }
+
+    async function loadGallery() {
+      const params = new URLSearchParams({ min_trades: minTradesInput.value });
+      const res    = await fetch(`/api/gallery?${params}`);
+      const items  = await res.json();
+      galleryEl.innerHTML = '';
+      items
+        .filter(item => item.trade_count >= +minTradesInput.value)
+        .filter(item => item.symbol.toLowerCase().includes(searchBox.value.toLowerCase()))
+        .forEach(item => galleryEl.appendChild(buildCard(item)));
+    }
+
+    runBtn.addEventListener('click', async () => {
+      runBtn.disabled = true;
+      statusSpan.textContent = 'Running…';
+      await fetch('/api/run_job', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ symbol:'NAS100.a', timeframe:1, bars:2000, strategy_kwargs:{ stoch_oversold_threshold:80 } })
+      });
+      statusSpan.textContent = 'Done';
+      runBtn.disabled = false;
+      loadGallery();
+    });
+
+    [searchBox, minTradesInput].forEach(el => el.addEventListener('input', loadGallery));
+    loadGallery();
+    setInterval(loadGallery, 15000);
+  </script>
+</body>
+</html>

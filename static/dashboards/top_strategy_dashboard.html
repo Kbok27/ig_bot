@@ -1,0 +1,53 @@
+// File: top_strategy_dashboard.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Threshold Sweep Dashboard</title>
+  <!-- Auto-refresh every 60 seconds -->
+  <meta http-equiv="refresh" content="60">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    label { margin-right: 20px; }
+    input { width: 80px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 15px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>Threshold Sweep Results</h1>
+
+  <div id="filters">
+    <label>Min Profit Factor:
+      <input id="pfMin" type="number" step="0.01" value="0"
+             oninput="applyFilters();">
+    </label>
+  </div>
+
+  <table id="statsTable">
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>Threshold</th>
+        <th>Bars</th>
+        <th>Profit Factor</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!--ROWS-->
+    </tbody>
+  </table>
+
+  <script>
+    function applyFilters() {
+      const minPf  = parseFloat(document.getElementById('pfMin').value) || 0;
+      const rows   = document.querySelectorAll('#statsTable tbody tr');
+      rows.forEach(r => {
+        const pf = parseFloat(r.cells[3].innerText) || 0;
+        r.style.display = (pf >= minPf) ? '' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
